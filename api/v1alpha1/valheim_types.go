@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -26,25 +27,34 @@ import (
 
 // ValheimSpec defines the desired state of Valheim
 type ValheimSpec struct {
-	Image          ValheimImageSpec          `json:"image"`
+	Image          ValheimImageSpec          `json:"image,omitempty"`
 	Server         ValheimServerSpec         `json:"server,omitempty"`
+	Service        ValheimServiceSpec        `json:"service,omitempty"`
 	WorldModifiers ValheimWorldModifiersSpec `json:"worldModifiers,omitempty"`
 	Access         ValheimAccessSpec         `json:"access,omitempty"`
 	Backups        ValheimBackupSpec         `json:"backups,omitempty"`
+	Paused         bool                      `json:"paused,omitempty"`
+	Storage        ValheimStorageSpec        `json:"storage"`
 	//Mods           ValheimModsSpec           `json:"mods,omitempty"`
 	//Tasks          []ValheimTaskSpec         `json:"tasks,omitempty"`
 }
 
 type ValheimImageSpec struct {
-	Repository string        `json:"repository"`
+	Repository string        `json:"repository,omitempty"`
 	Version    string        `json:"version"`
 	PullPolicy v1.PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 type ValheimServerSpec struct {
-	Name       string             `json:"name,omitempty"`
-	Password   v1.SecretReference `json:"password,omitempty"`
-	NameOrSeed string             `json:"nameOrSeed,omitempty"`
+	Name            string              `json:"name,omitempty"`
+	Password        *v1.SecretReference `json:"password,omitempty"`
+	WorldNameOrSeed string              `json:"worldNameOrSeed,omitempty"`
+	Public          bool                `json:"public,omitempty"`
+	AdditionalArgs  []string            `json:"additionalArgs,omitempty"`
+}
+
+type ValheimServiceSpec struct {
+	Type string `json:"type,omitempty"`
 }
 
 type ValheimAccessSpec struct {
@@ -66,10 +76,15 @@ type ValheimBackupSpec struct {
 	Schedule string `json:"scheduler,omitempty"`
 }
 
-//
+type ValheimStorageSpec struct {
+	Size string `json:"size"`
+}
+
 //type ValheimModsSpec struct {
+//	Enabled   bool   `json:"enabled"`
+//	Framework string `json:"framework"`
 //}
-//
+
 //type ValheimTaskSpec struct {
 //	Schedule string `json:"schedule"`
 //}
@@ -103,4 +118,48 @@ type ValheimList struct {
 
 func init() {
 	SchemeBuilder.Register(&Valheim{}, &ValheimList{})
+}
+
+func (v *Valheim) GetServerName() string {
+	if v.Spec.Server.Name == "" {
+		return "Hosted by Gamely"
+	}
+	return v.Spec.Server.Name
+}
+
+func (v *Valheim) GetWorldName() string {
+	if v.Spec.Server.WorldNameOrSeed == "" {
+		return "Dedicated"
+	}
+	return v.Spec.Server.WorldNameOrSeed
+}
+
+func (v *Valheim) GetImage() string {
+	repo := v.Spec.Image.Repository
+	if repo == "" {
+		repo = "ghcr.io/lloesche/valheim-server"
+	}
+	tag := v.Spec.Image.Version
+	if tag == "" {
+		tag = "latest"
+	}
+	return repo + ":" + tag
+}
+
+func (v *Valheim) NamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: v.Namespace,
+		Name:      v.Name,
+	}
+}
+
+func (v *Valheim) GetServiceType() v1.ServiceType {
+	switch v.Spec.Service.Type {
+	case "LoadBalancer":
+		return v1.ServiceTypeLoadBalancer
+	case "NodePort":
+		return v1.ServiceTypeNodePort
+	default:
+		return v1.ServiceTypeClusterIP
+	}
 }

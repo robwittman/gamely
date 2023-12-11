@@ -9,4 +9,10 @@ metadata:
     app.kubernetes.io/created-by: gamely
   name: valheim-sample
 spec:
-  # TODO(user): Add fields here
+  server:
+    name: "Test Server"
+    worldNameOrSeed: "dedicated"
+  service:
+    type: NodePort
+  storage:
+    size: 1Gi

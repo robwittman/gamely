@@ -55,11 +55,28 @@ spec:
                   scheduler:
                     type: string
                 type: object
+              image:
+                properties:
+                  pullPolicy:
+                    description: PullPolicy describes a policy for if/when to pull
+                      a container image
+                    type: string
+                  repository:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - version
+                type: object
+              paused:
+                type: boolean
               server:
                 properties:
+                  additionalArgs:
+                    items:
+                      type: string
+                    type: array
                   name:
-                    type: string
-                  nameOrSeed:
                     type: string
                   password:
                     description: SecretReference represents a Secret Reference. It
@@ -75,6 +92,15 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                  public:
+                    type: boolean
+                  worldNameOrSeed:
+                    type: string
+                type: object
+              service:
+                properties:
+                  type:
+                    type: string
                 type: object
               worldModifiers:
                 properties:

@@ -5,7 +5,7 @@
 *.dll
 *.so
 *.dylib
-bin
+examples
 testbin/*
 Dockerfile.cross
 
