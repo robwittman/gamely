@@ -77,7 +77,8 @@ type ValheimBackupSpec struct {
 }
 
 type ValheimStorageSpec struct {
-	Size string `json:"size"`
+	Size  string `json:"size"`
+	Class string `json:"class,omitempty"`
 }
 
 //type ValheimModsSpec struct {
@@ -93,6 +94,7 @@ type ValheimStorageSpec struct {
 type ValheimStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	WorldStorage string `json:"worldStorage,omitempty"`
 }
 
 //+kubebuilder:object:root=true

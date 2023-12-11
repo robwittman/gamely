@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/robwittman/gamely/internal/scope/valheim"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -125,7 +126,10 @@ func (r *ValheimReconciler) generatePassword(ctx context.Context, val *serverv1a
 		}
 	}
 
-	_ = controllerutil.SetOwnerReference(val, secret, r.Scheme)
+	if err := controllerutil.SetOwnerReference(val, secret, r.Scheme); err != nil {
+		fmt.Println(err)
+		fmt.Println("failed setting owner reference on secret")
+	}
 	val.Spec.Server.Password = &v1.SecretReference{
 		Name:      val.Name,
 		Namespace: val.Namespace,

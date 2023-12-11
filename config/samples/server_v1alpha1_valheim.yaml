@@ -15,4 +15,4 @@ spec:
   service:
     type: NodePort
   storage:
-    size: 1Gi
+    size: 2Gi

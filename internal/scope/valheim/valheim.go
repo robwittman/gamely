@@ -4,10 +4,10 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	"github.com/robwittman/gamely/api/v1alpha1"
+	"github.com/robwittman/gamely/internal/util"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,11 +54,20 @@ func (s *Scope) reconcileUpdate(ctx context.Context, req ctrl.Request) (ctrl.Res
 	}
 
 	// TODO: Store secret information in secrets. duh
+	pvc := &v1.PersistentVolumeClaim{}
+	if err := s.Client.Get(ctx, req.NamespacedName, pvc); err != nil {
+		if errors.IsNotFound(err) {
+			return s.reconcileStorage(ctx, req)
+		}
+
+		s.Logger.Error(err, "failed querying persistent volume claim")
+		return ctrl.Result{}, err
+	}
 
 	statefulset := &appsv1.StatefulSet{}
 	if err := s.Client.Get(ctx, req.NamespacedName, statefulset); err != nil {
 		if errors.IsNotFound(err) {
-			return s.reconcileStatefulSet(ctx, req)
+			return s.reconcileStatefulSet(ctx, req, pvc)
 		}
 
 		s.Logger.Error(err, "Failed querying statefulset")
@@ -84,6 +93,9 @@ func (s *Scope) reconcileServiceAccount(ctx context.Context, req ctrl.Request) (
 			Namespace: req.Namespace,
 		},
 	}
+	if err := controllerutil.SetOwnerReference(s.Valheim, serviceAccount, s.Client.Scheme()); err != nil {
+		s.Logger.Error(err, "failed setting owner reference on serviceaccount")
+	}
 	err := s.Client.Create(ctx, serviceAccount)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -91,7 +103,7 @@ func (s *Scope) reconcileServiceAccount(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (s *Scope) reconcileStatefulSet(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (s *Scope) reconcileStatefulSet(ctx context.Context, req ctrl.Request, claim *v1.PersistentVolumeClaim) (ctrl.Result, error) {
 	labels := s.makeLabels()
 	envVars := s.makeEnvVars()
 
@@ -134,6 +146,22 @@ func (s *Scope) reconcileStatefulSet(ctx context.Context, req ctrl.Request) (ctr
 									},
 								},
 							},
+							VolumeMounts: []v1.VolumeMount{
+								{
+									Name:      "worlddata",
+									MountPath: "/opt/valheim",
+								},
+							},
+						},
+					},
+					Volumes: []v1.Volume{
+						{
+							Name: "worlddata",
+							VolumeSource: v1.VolumeSource{
+								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+									ClaimName: claim.Name,
+								},
+							},
 						},
 					},
 				},
@@ -142,26 +170,33 @@ func (s *Scope) reconcileStatefulSet(ctx context.Context, req ctrl.Request) (ctr
 				Type:          appsv1.RollingUpdateStatefulSetStrategyType,
 				RollingUpdate: nil,
 			},
-			VolumeClaimTemplates: []v1.PersistentVolumeClaim{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "worlddata",
-					},
-					Spec: v1.PersistentVolumeClaimSpec{
-						AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
-						Resources: v1.ResourceRequirements{
-							Requests: map[v1.ResourceName]resource.Quantity{
-								v1.ResourceStorage: resource.MustParse(s.Valheim.Spec.Storage.Size),
-							},
-						},
-					},
-				},
-			},
 		},
 	}
 
-	_ = controllerutil.SetOwnerReference(s.Valheim, statefulSet, s.Client.Scheme())
+	if err := controllerutil.SetOwnerReference(s.Valheim, statefulSet, s.Client.Scheme()); err != nil {
+		s.Logger.Error(err, "failed setting controller reference on statefulset")
+	}
 	err := s.Client.Create(ctx, statefulSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{Requeue: true}, nil
+}
+
+func (s *Scope) reconcileStorage(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	storage, err := util.StorageVolume(req.Namespace, req.Name, &util.StorageVolumeOpts{
+		AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+		StorageClassName: s.Valheim.Spec.Storage.Class,
+		Size:             s.Valheim.Spec.Storage.Size,
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := controllerutil.SetOwnerReference(s.Valheim, storage, s.Client.Scheme()); err != nil {
+		s.Logger.Error(err, "failed setting controller reference on persistentvolumeclaim")
+	}
+	err = s.Client.Create(ctx, storage)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -204,6 +239,9 @@ func (s *Scope) reconcileService(ctx context.Context, statefulSet *appsv1.Statef
 				},
 			}
 
+			if err := controllerutil.SetOwnerReference(s.Valheim, service, s.Client.Scheme()); err != nil {
+				s.Logger.Error(err, "failed setting owner reference on service")
+			}
 			if err := s.Client.Create(ctx, service); err != nil {
 				s.Logger.Error(err, "failed creating service")
 				return ctrl.Result{}, err
