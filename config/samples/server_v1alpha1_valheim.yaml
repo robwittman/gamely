@@ -1,0 +1,12 @@
+apiVersion: server.gamely.io/v1alpha1
+kind: Valheim
+metadata:
+  labels:
+    app.kubernetes.io/name: valheim
+    app.kubernetes.io/instance: valheim-sample
+    app.kubernetes.io/part-of: gamely
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: gamely
+  name: valheim-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - server.gamely.io
+  resources:
+  - valheims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - server.gamely.io
+  resources:
+  - valheims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - server.gamely.io
+  resources:
+  - valheims/status
+  verbs:
+  - get
+  - patch
+  - update
