@@ -102,6 +102,13 @@ spec:
                   type:
                     type: string
                 type: object
+              storage:
+                properties:
+                  size:
+                    type: string
+                required:
+                - size
+                type: object
               worldModifiers:
                 properties:
                   combat:
@@ -117,6 +124,8 @@ spec:
                   resourceRate:
                     type: string
                 type: object
+            required:
+            - storage
             type: object
           status:
             description: ValheimStatus defines the observed state of Valheim
