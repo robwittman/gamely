@@ -46,11 +46,18 @@ type ValheimImageSpec struct {
 }
 
 type ValheimServerSpec struct {
-	Name            string              `json:"name,omitempty"`
-	Password        *v1.SecretReference `json:"password,omitempty"`
-	WorldNameOrSeed string              `json:"worldNameOrSeed,omitempty"`
-	Public          bool                `json:"public,omitempty"`
-	AdditionalArgs  []string            `json:"additionalArgs,omitempty"`
+	Name            string                    `json:"name,omitempty"`
+	Password        *v1.SecretReference       `json:"password,omitempty"`
+	WorldNameOrSeed string                    `json:"worldNameOrSeed,omitempty"`
+	Public          bool                      `json:"public,omitempty"`
+	Resources       ValheimServerResourceSpec `json:"resources,omitempty"`
+	AdditionalArgs  []string                  `json:"additionalArgs,omitempty"`
+	AdditionalEnv   map[string]string         `json:"additionalEnv,omitempty"`
+}
+
+type ValheimServerResourceSpec struct {
+	Limits   v1.ResourceList `json:"limits,omitempty"`
+	Requests v1.ResourceList `json:"requests,omitempty"`
 }
 
 type ValheimServiceSpec struct {
@@ -65,7 +72,7 @@ type ValheimAccessSpec struct {
 
 type ValheimWorldModifiersSpec struct {
 	Combat       string `json:"combat,omitempty"`
-	DeathPenalty string `json:"deathPenalty,omitempty"`
+	DeathPenalty string `json:"cdeathPenalty,omitempty"`
 	Raids        string `json:"raids,omitempty"`
 	ResourceRate string `json:"resourceRate,omitempty"`
 	Portals      string `json:"portals,omitempty"`
@@ -73,7 +80,10 @@ type ValheimWorldModifiersSpec struct {
 }
 
 type ValheimBackupSpec struct {
-	Schedule string `json:"scheduler,omitempty"`
+	Schedule     string              `json:"scheduler,omitempty"`
+	SecretKeyRef *v1.SecretReference `json:"secretKeyRef,omitempty"`
+	Endpoint     string              `json:"endpoint,omitempty"`
+	Bucket       string              `json:"bucket,omitempty"`
 }
 
 type ValheimStorageSpec struct {
@@ -95,6 +105,10 @@ type ValheimStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 	WorldStorage string `json:"worldStorage,omitempty"`
+
+	Conditions         []metav1.Condition `json:"conditions,omitempty"`
+	Ready              bool               `json:"ready,omitempty"`
+	ObservedGeneration int64              `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -12,7 +12,13 @@ spec:
   server:
     name: "Test Server"
     worldNameOrSeed: "dedicated"
+    additionalEnv:
+      test: "true"
   service:
     type: NodePort
+#  backups:
+#    secretKeyRef:
+#      name: backups
+#    endpoint: minio.default:9000
   storage:
     size: 2Gi
