@@ -95,6 +95,7 @@ func (r *ValheimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&serverv1alpha1.Valheim{}).
 		Owns(&v1.ServiceAccount{}).
+		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&v1.Service{}).
 		Owns(&v1.Secret{}).
 		Complete(r)
