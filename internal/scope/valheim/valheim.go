@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,7 +200,10 @@ func (s *Scope) reconcileBackupVolume(ctx context.Context, req ctrl.Request) (*v
 	}
 
 	existingPvc := &v1.PersistentVolumeClaim{}
-	if err := s.Client.Get(ctx, req.NamespacedName, existingPvc); err != nil {
+	if err := s.Client.Get(ctx, types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name + "-backups",
+	}, existingPvc); err != nil {
 		if errors.IsNotFound(err) {
 			s.Logger.Info("creating worlddata pvc")
 			err := s.Client.Create(ctx, storage)
@@ -386,6 +390,10 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 									Name:      "worlddata",
 									MountPath: "/opt/valheim",
 								},
+								{
+									Name:      "backups",
+									MountPath: "/config/backups",
+								},
 							},
 						},
 						//						{
@@ -424,6 +432,14 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 							VolumeSource: v1.VolumeSource{
 								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
 									ClaimName: s.Valheim.Name,
+								},
+							},
+						},
+						{
+							Name: "backups",
+							VolumeSource: v1.VolumeSource{
+								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+									ClaimName: s.Valheim.Name + "-backups",
 								},
 							},
 						},
