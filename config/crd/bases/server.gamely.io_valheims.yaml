@@ -85,6 +85,47 @@ spec:
                 - bucket
                 - storage
                 type: object
+              hooks:
+                properties:
+                  postBackupHook:
+                    type: string
+                  postBepinexConfigHook:
+                    type: string
+                  postBootstrapHook:
+                    type: string
+                  postRestartHook:
+                    type: string
+                  postServerListeningHook:
+                    type: string
+                  postServerRunHook:
+                    type: string
+                  postServerShutdownHook:
+                    type: string
+                  postStartHook:
+                    type: string
+                  postUpdateCheckHook:
+                    type: string
+                  preBackupHook:
+                    type: string
+                  preBepinexConfigHook:
+                    type: string
+                  preBootstrapHook:
+                    type: string
+                  preRestartHook:
+                    type: string
+                  preServerListeningHook:
+                    type: string
+                  preServerRunHook:
+                    type: string
+                  preServerShutdownHook:
+                    type: string
+                  preStartHook:
+                    type: string
+                  preSupervisorHook:
+                    type: string
+                  preUpdateCheckHook:
+                    type: string
+                type: object
               image:
                 properties:
                   pullPolicy:

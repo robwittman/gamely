@@ -25,3 +25,6 @@ spec:
       size: 6Gi
   storage:
     size: 2Gi
+  hooks:
+    postBackupHook: |
+      echo "Backup created at @BACKUP_FILE@"

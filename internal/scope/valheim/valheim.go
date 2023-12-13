@@ -32,6 +32,26 @@ const (
 	EnvVarAdminList        = "ADMINLIST_IDS"
 	EnvVarBannedList       = "BANNEDLIST_IDS"
 	EnvVarPermittedList    = "PERMITTEDLIST_IDS"
+
+	EnvVarPreSupervisorHook       = "PRE_SUPERVISOR_HOOK"
+	EnvVarPreBootstrapHook        = "PRE_BOOTSTRAP_HOOK"
+	EnvVarPostBootstrapHook       = "POST_BOOTSTRAP_HOOK"
+	EnvVarPreBackupHook           = "PRE_BACKUP_HOOK"
+	EnvVarPostBackupHook          = "POST_BACKUP_HOOK"
+	EnvVarPreUpdateCheckHook      = "PRE_UPDATE_CHECK_HOOK"
+	EnvVarPostUpdateCheckHook     = "POST_UPDATE_CHECK_HOOK"
+	EnvVarPreStartHook            = "PRE_START_HOOK"
+	EnvVarPostStartHook           = "POST_START_HOOK"
+	EnvVarPreRestartHook          = "PRE_RESTART_HOOK"
+	EnvVarPreServerListeningHook  = "PRE_SERVER_LISTENING_HOOK"
+	EnvVarPostServerListeningHook = "POST_SERVER_LISTENING_HOOK"
+	EnvVarPostRestartHook         = "POST_RESTART_HOOK"
+	EnvVarPreServerRunHook        = "PRE_SERVER_RUN_HOOK"
+	EnvVarPostServerRunHook       = "POST_SERVER_RUN_HOOK"
+	EnvVarPreServerShutdownHook   = "PRE_SERVER_SHUTDOWN_HOOK"
+	EnvVarPostServerShutdownHook  = "POST_SERVER_SHUTDOWN_HOOK"
+	EnvVarPreBepinexConfigHook    = "PRE_BEPINEX_CONFIG_HOOK"
+	EnvVarPostBepinexConfigHook   = "POST_BEPINEX_CONFIG_HOOK"
 )
 
 type Scope struct {
@@ -277,6 +297,10 @@ func (s *Scope) makeEnvVars() []v1.EnvVar {
 				},
 			},
 		},
+		//{
+		//	Name:  EnvVarPostBootstrapHook,
+		//	Value: "timeout 300 scp @BACKUP_FILE@ myself@example.com:~/backups/$(basename @BACKUP_FILE@)",
+		//},
 	}
 
 	if len(valSpec.Server.AdditionalArgs) > 0 {
@@ -329,6 +353,13 @@ func (s *Scope) makeEnvVars() []v1.EnvVar {
 		})
 	}
 
+	for env, value := range s.Valheim.FilteredHooksMap() {
+		envVars = append(envVars, v1.EnvVar{
+			Name:  env,
+			Value: value,
+		})
+	}
+
 	for envKey, envValue := range valSpec.Server.AdditionalEnv {
 		envVars = append(envVars, v1.EnvVar{
 			Name:  envKey,
@@ -357,6 +388,7 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 					Labels: s.labels,
 				},
 				Spec: v1.PodSpec{
+					ShareProcessNamespace: util.BoolAddr(true),
 					Containers: []v1.Container{
 						{
 							Name:  "server",

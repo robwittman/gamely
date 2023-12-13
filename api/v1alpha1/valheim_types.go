@@ -35,10 +35,32 @@ type ValheimSpec struct {
 	Backups        ValheimBackupSpec         `json:"backups,omitempty"`
 	Paused         bool                      `json:"paused,omitempty"`
 	Storage        ValheimStorageSpec        `json:"storage"`
+	Hooks          ValheimHooksSpec          `json:"hooks,omitempty"`
 	//Mods           ValheimModsSpec           `json:"mods,omitempty"`
 	//Tasks          []ValheimTaskSpec         `json:"tasks,omitempty"`
 }
 
+type ValheimHooksSpec struct {
+	PreSupervisorHook       string `json:"preSupervisorHook,omitempty"`
+	PreBootstrapHook        string `json:"preBootstrapHook,omitempty"`
+	PostBootstrapHook       string `json:"postBootstrapHook,omitempty"`
+	PreBackupHook           string `json:"preBackupHook,omitempty"`
+	PostBackupHook          string `json:"postBackupHook,omitempty"`
+	PreUpdateCheckHook      string `json:"preUpdateCheckHook,omitempty"`
+	PostUpdateCheckHook     string `json:"postUpdateCheckHook,omitempty"`
+	PreStartHook            string `json:"preStartHook,omitempty"`
+	PostStartHook           string `json:"postStartHook,omitempty"`
+	PreRestartHook          string `json:"preRestartHook,omitempty"`
+	PreServerListeningHook  string `json:"preServerListeningHook,omitempty"`
+	PostServerListeningHook string `json:"postServerListeningHook,omitempty"`
+	PostRestartHook         string `json:"postRestartHook,omitempty"`
+	PreServerRunHook        string `json:"preServerRunHook,omitempty"`
+	PostServerRunHook       string `json:"postServerRunHook,omitempty"`
+	PreServerShutdownHook   string `json:"preServerShutdownHook,omitempty"`
+	PostServerShutdownHook  string `json:"postServerShutdownHook,omitempty"`
+	PreBepinexConfigHook    string `json:"preBepinexConfigHook,omitempty"`
+	PostBepinexConfigHook   string `json:"postBepinexConfigHook,omitempty"`
+}
 type ValheimImageSpec struct {
 	Repository string        `json:"repository,omitempty"`
 	Version    string        `json:"version"`
@@ -179,4 +201,67 @@ func (v *Valheim) GetServiceType() v1.ServiceType {
 	default:
 		return v1.ServiceTypeClusterIP
 	}
+}
+
+func (v *Valheim) FilteredHooksMap() map[string]string {
+	hooks := v.Spec.Hooks
+	data := map[string]string{}
+	if hooks.PreSupervisorHook != "" {
+		data["PRE_SUPERVISOR_HOOK"] = hooks.PreSupervisorHook
+	}
+	if hooks.PreBootstrapHook != "" {
+		data["PRE_BOOTSTRAP_HOOK"] = hooks.PreBootstrapHook
+	}
+	if hooks.PostBootstrapHook != "" {
+		data["POST_BOOTSTRAP_HOOK"] = hooks.PostBootstrapHook
+	}
+	if hooks.PreBackupHook != "" {
+		data["PRE_BACKUP_HOOK"] = hooks.PreBackupHook
+	}
+	if hooks.PostBackupHook != "" {
+		data["POST_BACKUP_HOOK"] = hooks.PostBackupHook
+	}
+	if hooks.PreUpdateCheckHook != "" {
+		data["PRE_UPDATE_CHECK_HOOK"] = hooks.PreUpdateCheckHook
+	}
+	if hooks.PostUpdateCheckHook != "" {
+		data["POST_UPDATE_CHECK_HOOK"] = hooks.PostUpdateCheckHook
+	}
+	if hooks.PreStartHook != "" {
+		data["PRE_START_HOOK"] = hooks.PreStartHook
+	}
+	if hooks.PostStartHook != "" {
+		data["POST_START_HOOK"] = hooks.PostStartHook
+	}
+	if hooks.PreRestartHook != "" {
+		data["PRE_RESTART_HOOK"] = hooks.PreRestartHook
+	}
+	if hooks.PreServerListeningHook != "" {
+		data["PRE_SERVER_LISTENING_HOOK"] = hooks.PreServerListeningHook
+	}
+	if hooks.PostServerListeningHook != "" {
+		data["POST_SERVER_LISTENING_HOOK"] = hooks.PostServerListeningHook
+	}
+	if hooks.PostRestartHook != "" {
+		data["POST_RESTART_HOOK"] = hooks.PostRestartHook
+	}
+	if hooks.PreServerRunHook != "" {
+		data["PRE_SERVER_RUN_HOOK"] = hooks.PreServerRunHook
+	}
+	if hooks.PostServerRunHook != "" {
+		data["POST_SERVER_RUN_HOOK"] = hooks.PostServerRunHook
+	}
+	if hooks.PreServerShutdownHook != "" {
+		data["PRE_SERVER_SHUTDOWN_HOOK"] = hooks.PreServerShutdownHook
+	}
+	if hooks.PostServerShutdownHook != "" {
+		data["POST_SERVER_SHUTDOWN_HOOK"] = hooks.PostServerShutdownHook
+	}
+	if hooks.PreBepinexConfigHook != "" {
+		data["PRE_BEPINEX_CONFIG_HOOK"] = hooks.PreBepinexConfigHook
+	}
+	if hooks.PostBepinexConfigHook != "" {
+		data["POST_BEPINEX_CONFIG_HOOK"] = hooks.PostBepinexConfigHook
+	}
+	return data
 }
