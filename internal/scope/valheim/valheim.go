@@ -79,6 +79,12 @@ func (s *Scope) reconcileUpdate(ctx context.Context, req ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, err
 	}
 
+	_, err = s.reconcileBackupVolume(ctx, req)
+	if err != nil {
+		s.Logger.Error(err, "failed reconciling backup volume")
+		return ctrl.Result{}, err
+	}
+
 	// Reconcile our statefulset
 	_, statefulset, err := s.reconcileStatefulSet(ctx, req, pvc)
 	if err != nil {
@@ -177,6 +183,39 @@ func (s *Scope) reconcileStorage(ctx context.Context, req ctrl.Request) (bool, *
 	}
 
 	return false, existingPvc, nil
+}
+
+func (s *Scope) reconcileBackupVolume(ctx context.Context, req ctrl.Request) (*v1.PersistentVolumeClaim, error) {
+	storage, err := util.StorageVolume(req.Namespace, req.Name+"-backups", &util.StorageVolumeOpts{
+		AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+		StorageClassName: s.Valheim.Spec.Backups.Storage.Class,
+		Size:             s.Valheim.Spec.Backups.Storage.Size,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := controllerutil.SetOwnerReference(s.Valheim, storage, s.Client.Scheme()); err != nil {
+		s.Logger.Error(err, "failed setting controller reference on persistentvolumeclaim")
+	}
+
+	existingPvc := &v1.PersistentVolumeClaim{}
+	if err := s.Client.Get(ctx, req.NamespacedName, existingPvc); err != nil {
+		if errors.IsNotFound(err) {
+			s.Logger.Info("creating worlddata pvc")
+			err := s.Client.Create(ctx, storage)
+			if err != nil {
+				return nil, err
+			}
+			return storage, nil
+		}
+		return nil, err
+	}
+
+	if existingPvc.Spec.Resources.Requests[v1.ResourceStorage] != resource.MustParse(s.Valheim.Spec.Backups.Storage.Size) {
+		s.Logger.Info("pvc needs to be resized...")
+	}
+
+	return existingPvc, nil
 }
 
 func (s *Scope) reconcileService(ctx context.Context, statefulSet *appsv1.StatefulSet) (bool, *v1.Service, error) {

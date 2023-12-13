@@ -80,10 +80,11 @@ type ValheimWorldModifiersSpec struct {
 }
 
 type ValheimBackupSpec struct {
-	Schedule     string              `json:"scheduler,omitempty"`
+	Schedule     string              `json:"schedule,omitempty"`
 	SecretKeyRef *v1.SecretReference `json:"secretKeyRef,omitempty"`
 	Endpoint     string              `json:"endpoint,omitempty"`
-	Bucket       string              `json:"bucket,omitempty"`
+	Bucket       string              `json:"bucket"`
+	Storage      ValheimStorageSpec  `json:"storage"`
 }
 
 type ValheimStorageSpec struct {

@@ -56,7 +56,7 @@ spec:
                     type: string
                   endpoint:
                     type: string
-                  scheduler:
+                  schedule:
                     type: string
                   secretKeyRef:
                     description: SecretReference represents a Secret Reference. It
@@ -72,6 +72,18 @@ spec:
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
+                  storage:
+                    properties:
+                      class:
+                        type: string
+                      size:
+                        type: string
+                    required:
+                    - size
+                    type: object
+                required:
+                - bucket
+                - storage
                 type: object
               image:
                 properties:

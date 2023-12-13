@@ -16,9 +16,12 @@ spec:
       test: "true"
   service:
     type: NodePort
-#  backups:
-#    secretKeyRef:
-#      name: backups
-#    endpoint: minio.default:9000
+  backups:
+    secretKeyRef:
+      name: backups
+    endpoint: minio.default:9000
+    bucket: backups
+    storage:
+      size: 5Gi
   storage:
     size: 2Gi
