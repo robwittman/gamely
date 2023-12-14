@@ -139,8 +139,61 @@ spec:
                 required:
                 - version
                 type: object
+              mods:
+                properties:
+                  enabled:
+                    type: boolean
+                  framework:
+                    type: string
+                  packages:
+                    additionalProperties:
+                      properties:
+                        config:
+                          type: string
+                        version:
+                          type: string
+                      type: object
+                    type: object
+                  storage:
+                    properties:
+                      class:
+                        type: string
+                      size:
+                        type: string
+                    required:
+                    - size
+                    type: object
+                required:
+                - enabled
+                - framework
+                - packages
+                - storage
+                type: object
               paused:
                 type: boolean
+              resources:
+                properties:
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: ResourceList is a set of (resource name, quantity)
+                      pairs.
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: ResourceList is a set of (resource name, quantity)
+                      pairs.
+                    type: object
+                type: object
               server:
                 properties:
                   additionalArgs:
@@ -169,29 +222,6 @@ spec:
                     x-kubernetes-map-type: atomic
                   public:
                     type: boolean
-                  resources:
-                    properties:
-                      limits:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: ResourceList is a set of (resource name, quantity)
-                          pairs.
-                        type: object
-                      requests:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: ResourceList is a set of (resource name, quantity)
-                          pairs.
-                        type: object
-                    type: object
                   worldNameOrSeed:
                     type: string
                 type: object

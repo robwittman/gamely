@@ -27,6 +27,8 @@ import (
 
 // ValheimSpec defines the desired state of Valheim
 type ValheimSpec struct {
+	Resources GameServerResourceSpec `json:"resources,omitempty"`
+
 	Image          ValheimImageSpec          `json:"image,omitempty"`
 	Server         ValheimServerSpec         `json:"server,omitempty"`
 	Service        ValheimServiceSpec        `json:"service,omitempty"`
@@ -36,7 +38,7 @@ type ValheimSpec struct {
 	Paused         bool                      `json:"paused,omitempty"`
 	Storage        ValheimStorageSpec        `json:"storage"`
 	Hooks          ValheimHooksSpec          `json:"hooks,omitempty"`
-	//Mods           ValheimModsSpec           `json:"mods,omitempty"`
+	Mods           ValheimModsSpec           `json:"mods,omitempty"`
 	//Tasks          []ValheimTaskSpec         `json:"tasks,omitempty"`
 }
 
@@ -68,18 +70,12 @@ type ValheimImageSpec struct {
 }
 
 type ValheimServerSpec struct {
-	Name            string                    `json:"name,omitempty"`
-	Password        *v1.SecretReference       `json:"password,omitempty"`
-	WorldNameOrSeed string                    `json:"worldNameOrSeed,omitempty"`
-	Public          bool                      `json:"public,omitempty"`
-	Resources       ValheimServerResourceSpec `json:"resources,omitempty"`
-	AdditionalArgs  []string                  `json:"additionalArgs,omitempty"`
-	AdditionalEnv   map[string]string         `json:"additionalEnv,omitempty"`
-}
-
-type ValheimServerResourceSpec struct {
-	Limits   v1.ResourceList `json:"limits,omitempty"`
-	Requests v1.ResourceList `json:"requests,omitempty"`
+	Name            string              `json:"name,omitempty"`
+	Password        *v1.SecretReference `json:"password,omitempty"`
+	WorldNameOrSeed string              `json:"worldNameOrSeed,omitempty"`
+	Public          bool                `json:"public,omitempty"`
+	AdditionalArgs  []string            `json:"additionalArgs,omitempty"`
+	AdditionalEnv   map[string]string   `json:"additionalEnv,omitempty"`
 }
 
 type ValheimServiceSpec struct {
@@ -114,10 +110,17 @@ type ValheimStorageSpec struct {
 	Class string `json:"class,omitempty"`
 }
 
-//type ValheimModsSpec struct {
-//	Enabled   bool   `json:"enabled"`
-//	Framework string `json:"framework"`
-//}
+type ValheimModsSpec struct {
+	Enabled   bool                      `json:"enabled"`
+	Framework string                    `json:"framework"`
+	Storage   ValheimStorageSpec        `json:"storage"`
+	Packages  map[string]ValheimModSpec `json:"packages"`
+}
+
+type ValheimModSpec struct {
+	Version string `json:"version,omitempty"`
+	Config  string `json:"config,omitempty"`
+}
 
 //type ValheimTaskSpec struct {
 //	Schedule string `json:"schedule"`

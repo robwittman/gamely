@@ -52,6 +52,9 @@ const (
 	EnvVarPostServerShutdownHook  = "POST_SERVER_SHUTDOWN_HOOK"
 	EnvVarPreBepinexConfigHook    = "PRE_BEPINEX_CONFIG_HOOK"
 	EnvVarPostBepinexConfigHook   = "POST_BEPINEX_CONFIG_HOOK"
+
+	EnvVarBepinEx     = "BEPINEX"
+	EnvVarValheimPlus = "VALHEIM_PLUS"
 )
 
 type Scope struct {
@@ -106,6 +109,19 @@ func (s *Scope) reconcileUpdate(ctx context.Context, req ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, err
 	}
 
+	if s.Valheim.Spec.Mods.Enabled {
+		_, err = s.reconcileModStorage(ctx, req)
+		if err != nil {
+			s.Logger.Error(err, "failed reconciling mod storage")
+			return ctrl.Result{}, err
+		}
+		_, err = s.reconcileMods(ctx, req)
+		if err != nil {
+			s.Logger.Error(err, "failed reconciling mod configuration")
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Reconcile our statefulset
 	_, statefulset, err := s.reconcileStatefulSet(ctx, req, pvc)
 	if err != nil {
@@ -142,6 +158,80 @@ func (s *Scope) reconcileServiceAccount(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{Requeue: true}, nil
+}
+
+func (s *Scope) reconcileMods(ctx context.Context, req ctrl.Request) (*v1.ConfigMap, error) {
+	configMapData := map[string]string{}
+	registry := []string{}
+	for pkg, conf := range s.Valheim.Spec.Mods.Packages {
+		if conf.Config != "" {
+			configMapData[strings.Replace(pkg, "/", ".", -1)] = conf.Config
+		}
+		registry = append(registry, pkg+":"+conf.Version)
+	}
+
+	configMapData["registry.txt"] = strings.Join(registry, "\n")
+	configMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: req.Namespace,
+			Name:      req.Name + "-mods",
+		},
+		Data: configMapData,
+	}
+	if err := s.Client.Get(ctx, types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name + "-mods",
+	}, &v1.ConfigMap{}); err != nil {
+		if errors.IsNotFound(err) {
+			s.Logger.Info("creating configmap")
+			err := s.Client.Create(ctx, configMap)
+			if err != nil {
+				return nil, err
+			}
+			return configMap, nil
+		}
+		return nil, err
+	}
+
+	s.Logger.Info("updating configmap")
+	err := s.Client.Update(ctx, configMap)
+	return configMap, err
+}
+
+func (s *Scope) reconcileModStorage(ctx context.Context, req ctrl.Request) (*v1.PersistentVolumeClaim, error) {
+	storage, err := util.StorageVolume(req.Namespace, req.Name+"-mods", &util.StorageVolumeOpts{
+		AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+		StorageClassName: s.Valheim.Spec.Mods.Storage.Class,
+		Size:             s.Valheim.Spec.Mods.Storage.Size,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := controllerutil.SetOwnerReference(s.Valheim, storage, s.Client.Scheme()); err != nil {
+		s.Logger.Error(err, "failed setting controller reference on persistentvolumeclaim")
+	}
+
+	existingPvc := &v1.PersistentVolumeClaim{}
+	if err := s.Client.Get(ctx, types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name + "-mods",
+	}, existingPvc); err != nil {
+		if errors.IsNotFound(err) {
+			s.Logger.Info("creating worlddata pvc")
+			err := s.Client.Create(ctx, storage)
+			if err != nil {
+				return nil, err
+			}
+			return storage, nil
+		}
+		return nil, err
+	}
+
+	if existingPvc.Spec.Resources.Requests[v1.ResourceStorage] != resource.MustParse(s.Valheim.Spec.Mods.Storage.Size) {
+		s.Logger.Info("mods pvc needs to be resized...")
+	}
+
+	return existingPvc, nil
 }
 
 func (s *Scope) reconcileStatefulSet(ctx context.Context, req ctrl.Request, claim *v1.PersistentVolumeClaim) (bool, *appsv1.StatefulSet, error) {
@@ -353,6 +443,20 @@ func (s *Scope) makeEnvVars() []v1.EnvVar {
 		})
 	}
 
+	if valSpec.Mods.Enabled {
+		if valSpec.Mods.Framework == "bepinex" {
+			envVars = append(envVars, v1.EnvVar{
+				Name:  EnvVarBepinEx,
+				Value: "true",
+			})
+		} else {
+			envVars = append(envVars, v1.EnvVar{
+				Name:  EnvVarValheimPlus,
+				Value: "true",
+			})
+		}
+	}
+
 	for env, value := range s.Valheim.FilteredHooksMap() {
 		envVars = append(envVars, v1.EnvVar{
 			Name:  env,
@@ -373,6 +477,87 @@ func (s *Scope) makeEnvVars() []v1.EnvVar {
 func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 	envVars := s.makeEnvVars()
 
+	initContainers := []v1.Container{}
+	volumes := []v1.Volume{
+		{
+			Name: "worlddata",
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: s.Valheim.Name,
+				},
+			},
+		},
+		{
+			Name: "backups",
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: s.Valheim.Name + "-backups",
+				},
+			},
+		},
+	}
+	volumeMounts := []v1.VolumeMount{
+		{
+			Name:      "worlddata",
+			MountPath: "/opt/valheim",
+		},
+		{
+			Name:      "backups",
+			MountPath: "/config/backups",
+		},
+	}
+	if s.Valheim.Spec.Mods.Enabled {
+		volumes = append(volumes, v1.Volume{
+			Name: "mods",
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: s.Valheim.Name + "-mods",
+				},
+			},
+		}, v1.Volume{
+			Name: "mod-config",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: req.Name + "-mods",
+					},
+				},
+			},
+		})
+		modPath := "/config/valheimplus"
+		if s.Valheim.Spec.Mods.Framework == "bepinex" {
+			modPath = "/config/bepinex"
+		}
+		volumeMounts = append(volumeMounts, v1.VolumeMount{
+			Name:      "mods",
+			MountPath: modPath,
+		})
+
+		initContainers = append(initContainers, v1.Container{
+			Name:  "mod-downloader",
+			Image: "busybox",
+			VolumeMounts: []v1.VolumeMount{
+				{Name: "mods", MountPath: modPath},
+				{Name: "mod-config", MountPath: "/config/mods"},
+			},
+			Env: []v1.EnvVar{
+				{Name: "MOD_PATH", Value: modPath},
+			},
+			Command: []string{"sh", "-c"},
+			Args: []string{`
+for pkg in $(cat "/config/mods/registry.txt")
+do
+  package=$(echo $pkg | cut -d ":" -f 1)
+  version=$(echo $pkg | cut -d ":" -f 2)
+  echo "Downloading ${package} at version ${version}"
+  output=$(echo $pkg | sed 's/\///g')
+  wget -O "${output}.zip" "https://thunderstore.io/package/download/${package}/${version}"
+  unzip "${output}.zip" -n -d "${MOD_PATH}/"
+  rm "${output}.zip"
+done
+`},
+		})
+	}
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -389,6 +574,7 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 				},
 				Spec: v1.PodSpec{
 					ShareProcessNamespace: util.BoolAddr(true),
+					InitContainers:        initContainers,
 					Containers: []v1.Container{
 						{
 							Name:  "server",
@@ -407,8 +593,8 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 								},
 							},
 							Resources: v1.ResourceRequirements{
-								Limits:   s.Valheim.Spec.Server.Resources.Limits,
-								Requests: s.Valheim.Spec.Server.Resources.Requests,
+								Limits:   s.Valheim.Spec.Resources.Limits,
+								Requests: s.Valheim.Spec.Resources.Requests,
 							},
 							SecurityContext: &v1.SecurityContext{
 								Capabilities: &v1.Capabilities{
@@ -417,16 +603,7 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 									},
 								},
 							},
-							VolumeMounts: []v1.VolumeMount{
-								{
-									Name:      "worlddata",
-									MountPath: "/opt/valheim",
-								},
-								{
-									Name:      "backups",
-									MountPath: "/config/backups",
-								},
-							},
+							VolumeMounts: volumeMounts,
 						},
 						//						{
 						//							Name:    "backup-manager",
@@ -458,24 +635,7 @@ func (s *Scope) makeStatefulSet(req ctrl.Request) (*appsv1.StatefulSet, error) {
 						//							},
 						//						},
 					},
-					Volumes: []v1.Volume{
-						{
-							Name: "worlddata",
-							VolumeSource: v1.VolumeSource{
-								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-									ClaimName: s.Valheim.Name,
-								},
-							},
-						},
-						{
-							Name: "backups",
-							VolumeSource: v1.VolumeSource{
-								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-									ClaimName: s.Valheim.Name + "-backups",
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
