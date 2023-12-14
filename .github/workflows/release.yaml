@@ -9,7 +9,7 @@ on:
       - '**/*.go'
       - 'go.mod'
       - 'config/**/*.yaml'
-      - '.github/workflows/release.yaml'
+      - '.github/**/*.yaml'
       - '.releaserc.json'
 
 jobs:
