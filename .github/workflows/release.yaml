@@ -8,6 +8,7 @@ on:
     paths:
       - '**/*.go'
       - 'go.mod'
+      - 'config/**/*.yaml'
       - '.github/workflows/release.yaml'
       - '.releaserc.json'
 
