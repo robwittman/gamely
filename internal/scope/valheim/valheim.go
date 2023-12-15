@@ -84,6 +84,11 @@ func (s *Scope) reconcileDelete(ctx context.Context, req ctrl.Request) (ctrl.Res
 func (s *Scope) reconcileUpdate(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	s.labels = s.makeLabels()
 
+	reconciler := &util.Reconciler{
+		Client: s.Client,
+		Logger: s.Logger,
+	}
+
 	serviceaccount := &v1.ServiceAccount{}
 	if err := s.Client.Get(ctx, req.NamespacedName, serviceaccount); err != nil {
 		if errors.IsNotFound(err) {
