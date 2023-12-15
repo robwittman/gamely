@@ -9,6 +9,16 @@ on:
       - main
 
 jobs:
+  helm:
+    name: Test Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.10.3
+      - run: helm lint --strict deploy/charts/gamely
+
   lint:
     name: Lint Operator
     runs-on: ubuntu-latest
