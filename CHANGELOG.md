@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/robwittman/gamely/compare/v1.0.1...v1.1.0) (2023-12-15)
+
+
+### Features
+
+* **ci:** Add Helm chart ([d556579](https://github.com/robwittman/gamely/commit/d5565799ecc252c977949e37faaf9ec0934e346c))
+
 ### [1.0.1](https://github.com/robwittman/gamely/compare/v1.0.0...v1.0.1) (2023-12-14)
 
 
