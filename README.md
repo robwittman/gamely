@@ -19,3 +19,10 @@ Gamely is a Kubernetes operator for managing various self-hosted game servers
 - Ark 
 - DayZ
 - Rust
+
+## Installation 
+
+``` 
+helm install gamely oci://ghcr.io/robwittman/gamely/helm/gamely
+kubectl apply -f https://github.com/robwittman/gamely/releases/latest/download/server.gamely.io_valheims.yaml
+```
