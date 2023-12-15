@@ -18,6 +18,9 @@ package controller
 
 import (
 	"context"
+	"github.com/robwittman/gamely/internal/scope/minecraft"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,16 +50,31 @@ type MinecraftReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *MinecraftReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	m := &serverv1alpha1.Minecraft{}
+	if err := r.Get(ctx, req.NamespacedName, m); err != nil {
+		if errors.IsNotFound(err) {
+			logger.Error(err, "minecraft resource did not exist")
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "failed finding minecraft resource")
+	}
 
-	return ctrl.Result{}, nil
+	return (&minecraft.Scope{
+		Logger:    logger,
+		Client:    r.Client,
+		Minecraft: m,
+	}).Reconcile(ctx, req)
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MinecraftReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&serverv1alpha1.Minecraft{}).
+		Owns(&v1.ServiceAccount{}).
+		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&v1.Service{}).
+		Owns(&v1.Secret{}).
 		Complete(r)
 }
