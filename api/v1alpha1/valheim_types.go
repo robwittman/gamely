@@ -29,7 +29,7 @@ import (
 type ValheimSpec struct {
 	Resources GameServerResourceSpec `json:"resources,omitempty"`
 
-	Image          ValheimImageSpec          `json:"image,omitempty"`
+	Image          GameImageSpec             `json:"image,omitempty"`
 	Server         ValheimServerSpec         `json:"server,omitempty"`
 	Service        ValheimServiceSpec        `json:"service,omitempty"`
 	WorldModifiers ValheimWorldModifiersSpec `json:"worldModifiers,omitempty"`
@@ -62,11 +62,6 @@ type ValheimHooksSpec struct {
 	PostServerShutdownHook  string `json:"postServerShutdownHook,omitempty"`
 	PreBepinexConfigHook    string `json:"preBepinexConfigHook,omitempty"`
 	PostBepinexConfigHook   string `json:"postBepinexConfigHook,omitempty"`
-}
-type ValheimImageSpec struct {
-	Repository string        `json:"repository,omitempty"`
-	Version    string        `json:"version"`
-	PullPolicy v1.PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 type ValheimServerSpec struct {
