@@ -1,4 +1,5 @@
 ## Append samples of your project ##
 resources:
 - server_v1alpha1_valheim.yaml
+- server_v1alpha1_minecraft.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

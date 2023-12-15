@@ -1,0 +1,12 @@
+apiVersion: server.gamely.io/v1alpha1
+kind: Minecraft
+metadata:
+  labels:
+    app.kubernetes.io/name: minecraft
+    app.kubernetes.io/instance: minecraft-sample
+    app.kubernetes.io/part-of: gamely
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: gamely
+  name: minecraft-sample
+spec:
+  # TODO(user): Add fields here
